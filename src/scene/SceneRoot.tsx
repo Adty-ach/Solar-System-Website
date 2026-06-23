@@ -40,7 +40,7 @@ export function SceneRoot() {
         enableDamping
         dampingFactor={0.06}
         minDistance={15}
-        maxDistance={900}
+        maxDistance={1000}
         zoomSpeed={0.8}
         rotateSpeed={0.5}
         panSpeed={0.8}
