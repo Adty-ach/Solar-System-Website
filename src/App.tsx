@@ -1,21 +1,28 @@
-import React from 'react'
+import React        from 'react'
+import { SceneRoot } from './scene/SceneRoot'
 import { TimeControls } from './ui/TimeControls'
+import { InfoPanel }    from './ui/InfoPanel'
 
 export default function App(): React.ReactElement {
   return (
-    <div className="relative w-screen h-screen bg-black overflow-hidden">
+    <div style={{ width: '100vw', height: '100vh', background: '#000' }}>
 
-      {/* Canvas placeholder — Three.js scene mounts here in Step 2 */}
-      <div className="absolute inset-0 flex items-center justify-center">
-        <span className="text-white/10 text-sm font-mono tracking-widest uppercase">
-          Scene renders here — Step 2
-        </span>
-      </div>
+      <SceneRoot />
 
-      {/* HUD overlay */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-10">
+      {/* Info panel — klik planet */}
+      <InfoPanel />
+
+      {/* Time controls */}
+      <div style={{
+        position:  'fixed',
+        bottom:    '24px',
+        left:      '50%',
+        transform: 'translateX(-50%)',
+        zIndex:    10,
+      }}>
         <TimeControls />
       </div>
+
     </div>
   )
 }

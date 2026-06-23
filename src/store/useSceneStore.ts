@@ -1,8 +1,9 @@
 import { create } from 'zustand'
 
 export type CelestialObjectId =
-  | 'sun' | 'mercury' | 'venus' | 'earth' | 'moon'
-  | 'mars' | 'jupiter' | 'saturn' | 'uranus' | 'neptune'
+  | 'sun' | 'moon'
+  | 'mercury' | 'venus' | 'earth' | 'mars'
+  | 'jupiter' | 'saturn' | 'uranus' | 'neptune'
   | null
 
 interface SceneState {
@@ -18,7 +19,6 @@ interface SceneActions {
 export const useSceneStore = create<SceneState & SceneActions>((set) => ({
   selectedObject: null,
   cameraTarget:   null,
-
   setSelectedObject: (id) => set({ selectedObject: id }),
   setCameraTarget:   (id) => set({ cameraTarget: id }),
 }))

@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 
-export type SpeedMultiplier = 1 | 10 | 100 | 1000 | 10000
+export const SPEED_OPTIONS = [1, 10, 100, 1000, 10000] as const
+export type SpeedMultiplier = (typeof SPEED_OPTIONS)[number]
 
 interface SimState {
   simTime: Date
