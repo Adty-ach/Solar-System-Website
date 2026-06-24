@@ -1,3 +1,4 @@
+import { motion }            from 'framer-motion'
 import { usePrayerStore }    from '../store/usePrayerStore'
 import { useSimStore }       from '../store/useSimStore'
 import { useLocationStore }  from '../store/useLocationStore'
@@ -10,7 +11,6 @@ import {
 } from '../engines/prayer'
 import type { PrayerMethod, PrayerName } from '../engines/prayer'
 
-// ── Prayer icons ───────────────────────────────────────────────
 const PRAYER_ICONS: Record<PrayerName, string> = {
   fajr:    '🌙',
   sunrise: '🌅',
@@ -29,17 +29,15 @@ const PRAYER_COLORS: Record<PrayerName, string> = {
   isha:    '#60A5FA',
 }
 
-// ── Prayer description ─────────────────────────────────────────
 const PRAYER_DESC: Record<PrayerName, string> = {
-  fajr:    'Dawn prayer — begins at astronomical twilight when sun is 18° below horizon',
-  sunrise: 'End of Fajr time — moment sun appears above horizon',
-  dhuhr:   'Midday prayer — begins at solar noon when sun crosses meridian',
-  asr:     'Afternoon prayer — when shadow equals object height plus noon shadow',
+  fajr:    'Dawn prayer — begins when sun is 18° below horizon',
+  sunrise: 'End of Fajr — moment sun appears above horizon',
+  dhuhr:   'Midday prayer — begins at solar noon',
+  asr:     'Afternoon — when shadow equals object height plus noon shadow',
   maghrib: 'Sunset prayer — immediately after sun dips below horizon',
-  isha:    'Night prayer — begins when twilight disappears, sun 17° below horizon',
+  isha:    'Night prayer — sun 17° below horizon, twilight disappears',
 }
 
-// ── Sub-components ─────────────────────────────────────────────
 function SectionTitle({ text }: { text: string }) {
   return (
     <div style={{
@@ -57,14 +55,12 @@ function SectionTitle({ text }: { text: string }) {
   )
 }
 
-interface PrayerRowProps {
+function PrayerRow({ name, timeStr, isCurrent, isNext }: {
   name:      PrayerName
   timeStr:   string
   isCurrent: boolean
   isNext:    boolean
-}
-
-function PrayerRow({ name, timeStr, isCurrent, isNext }: PrayerRowProps) {
+}) {
   const color = PRAYER_COLORS[name]
   return (
     <div style={{
@@ -76,15 +72,10 @@ function PrayerRow({ name, timeStr, isCurrent, isNext }: PrayerRowProps) {
       marginBottom: '4px',
       background:   isCurrent
         ? `${color}22`
-        : isNext
-          ? 'rgba(255,255,255,0.04)'
-          : 'transparent',
+        : isNext ? 'rgba(255,255,255,0.04)' : 'transparent',
       border: isCurrent
         ? `1px solid ${color}55`
-        : isNext
-          ? '1px solid rgba(255,255,255,0.1)'
-          : '1px solid transparent',
-      transition: 'all 0.3s',
+        : isNext ? '1px solid rgba(255,255,255,0.1)' : '1px solid transparent',
     }}>
       <span style={{ fontSize: '16px', width: '20px', textAlign: 'center' }}>
         {PRAYER_ICONS[name]}
@@ -120,18 +111,32 @@ function PrayerRow({ name, timeStr, isCurrent, isNext }: PrayerRowProps) {
   )
 }
 
-// ── Main panel ─────────────────────────────────────────────────
 interface PrayerObservatoryProps {
   onClose: () => void
 }
 
 export function PrayerObservatory({ onClose }: PrayerObservatoryProps) {
-  const schedule   = usePrayerStore((s) => s.schedule)
-  const method     = usePrayerStore((s) => s.method)
-  const setMethod  = usePrayerStore((s) => s.setMethod)
-  const simTime    = useSimStore((s) => s.simTime)
-  const utcOffset  = useLocationStore((s) => s.utcOffset)
+  const schedule    = usePrayerStore((s) => s.schedule)
+  const method      = usePrayerStore((s) => s.method)
+  const setMethod   = usePrayerStore((s) => s.setMethod)
+  const simTime     = useSimStore((s) => s.simTime)
+  const utcOffset   = useLocationStore((s) => s.utcOffset)
   const countryName = useLocationStore((s) => s.countryName)
+
+  // ── Countdown dihitung langsung dari simTime ──────────────
+  const liveCountdown = (() => {
+    if (!schedule?.nextPrayer || !schedule.times[schedule.nextPrayer]) return '--:--:--'
+
+    const nextUTC   = schedule.times[schedule.nextPrayer]!
+    const nowUTC    = simTime.getUTCHours()
+      + simTime.getUTCMinutes() / 60
+      + simTime.getUTCSeconds() / 3600
+
+    let diff = nextUTC - nowUTC
+    if (diff < 0) diff += 24   // next day
+
+    return formatCountdown(Math.round(diff * 3600))
+  })()
 
   const dateStr = simTime.toLocaleDateString('en-US', {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
@@ -140,10 +145,13 @@ export function PrayerObservatory({ onClose }: PrayerObservatoryProps) {
 
   const nextName    = schedule?.nextPrayer
   const currentName = schedule?.currentPrayer
-  const countdown   = schedule ? formatCountdown(schedule.secondsToNext) : '--:--:--'
 
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0, x: 40  }}
+      animate={{ opacity: 1, x: 0   }}
+      exit={{    opacity: 0, x: 40  }}
+      transition={{ duration: 0.3, ease: 'easeOut' }}
       style={{
         position:       'fixed',
         top:            '16px',
@@ -200,22 +208,42 @@ export function PrayerObservatory({ onClose }: PrayerObservatoryProps) {
           marginTop:    '12px',
           marginBottom: '4px',
         }}>
-          <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.45)', letterSpacing: '1px', textTransform: 'uppercase' }}>
+          <div style={{
+            fontSize:      '11px',
+            color:         'rgba(255,255,255,0.45)',
+            letterSpacing: '1px',
+            textTransform: 'uppercase',
+          }}>
             Next Prayer
           </div>
-          <div style={{ fontSize: '20px', fontWeight: 600, color: PRAYER_COLORS[nextName], margin: '4px 0 2px' }}>
+          <div style={{
+            fontSize:   '20px',
+            fontWeight: 600,
+            color:      PRAYER_COLORS[nextName],
+            margin:     '4px 0 2px',
+          }}>
             {PRAYER_ICONS[nextName]} {PRAYER_DISPLAY_NAMES[nextName]}
           </div>
-          <div style={{ fontSize: '28px', fontWeight: 200, fontFamily: 'monospace', letterSpacing: '3px', color: '#fff' }}>
-            {countdown}
+          <div style={{
+            fontSize:      '28px',
+            fontWeight:    200,
+            fontFamily:    'monospace',
+            letterSpacing: '3px',
+            color:         '#fff',
+          }}>
+            {liveCountdown}
           </div>
-          <div style={{ fontSize: '10px', color: 'rgba(255,255,255,0.3)', marginTop: '4px' }}>
+          <div style={{
+            fontSize:  '10px',
+            color:     'rgba(255,255,255,0.3)',
+            marginTop: '4px',
+          }}>
             {PRAYER_DESC[nextName]}
           </div>
         </div>
       )}
 
-      {/* Prayer Schedule */}
+      {/* Schedule */}
       <SectionTitle text="Today's Schedule" />
       {schedule ? (
         PRAYER_ORDER.map((name) => (
@@ -254,12 +282,11 @@ export function PrayerObservatory({ onClose }: PrayerObservatoryProps) {
               fontSize:     '11px',
               textAlign:    'left',
               fontWeight:   method === m ? 600 : 400,
-              transition:   'all 0.15s',
             }}
           >
             <span style={{ fontWeight: 600 }}>{m}</span>
             <span style={{ marginLeft: '6px', opacity: 0.6, fontSize: '10px' }}>
-              {PRAYER_METHODS[m].fajrAngle}° / {PRAYER_METHODS[m].ishaAngle}°
+              Fajr {PRAYER_METHODS[m].fajrAngle}° / Isha {PRAYER_METHODS[m].ishaAngle}°
             </span>
           </button>
         ))}
@@ -276,9 +303,8 @@ export function PrayerObservatory({ onClose }: PrayerObservatoryProps) {
         color:        'rgba(255,255,255,0.45)',
         lineHeight:   '1.6',
       }}>
-        💡 Prayer times are derived from solar geometry. Fajr and Isha use depression angles, Dhuhr uses solar noon, and Asr uses shadow length ratios — all calculated astronomically.
+        💡 Prayer times are derived from solar geometry. Fajr and Isha use depression angles, Dhuhr uses solar noon, and Asr uses shadow length — all calculated astronomically.
       </div>
-
-    </div>
+    </motion.div>
   )
 }

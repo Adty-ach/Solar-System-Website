@@ -41,19 +41,24 @@ export function Moon() {
 
   const moonTex = useTexture('/textures/moon.jpg')
 
-  useFrame((_, delta) => {
-    if (!groupRef.current) return
-    const earthPos = calculatePlanetPosition('earth', simTime, 28)
-    const days     = simTime.getTime() / 86_400_000
-    const angle    = (days / 27.3) * Math.PI * 2
+useFrame(() => {
+  if (!groupRef.current || !meshRef.current) return
 
-    groupRef.current.position.set(
-      earthPos.x + MOON_ORBIT_RADIUS * Math.cos(angle),
-      0,
-      earthPos.z + MOON_ORBIT_RADIUS * Math.sin(angle),
-    )
-    if (meshRef.current) meshRef.current.rotation.y += delta * 0.002
-  })
+  const earthPos = calculatePlanetPosition('earth', simTime, 28)
+
+  // Moon orbit: 27.3 day period — fully derived from simTime
+  const days  = simTime.getTime() / 86_400_000
+  const angle = (days / 27.3) * Math.PI * 2
+
+  groupRef.current.position.set(
+    earthPos.x + MOON_ORBIT_RADIUS * Math.cos(angle),
+    0,
+    earthPos.z + MOON_ORBIT_RADIUS * Math.sin(angle),
+  )
+
+  // Moon self-rotation (tidally locked = same period as orbit)
+  meshRef.current.rotation.y = angle
+})
 
   function handleClick(e: any) {
     e.stopPropagation()

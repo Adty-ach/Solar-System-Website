@@ -9,24 +9,22 @@ export function SceneRoot() {
   return (
     <Canvas
       camera={{
-        position: [0, 120, 280],
-        fov:      55,
+        position: [0, 80, 200],
+        fov:      50,
         near:     0.1,
-        far:      3000,        // increased for Neptune
+        far:      3000,
       }}
       gl={{
         antialias:           true,
         toneMapping:         1,
-        toneMappingExposure: 1.2,
+        toneMappingExposure: 1.0,
       }}
       style={{ background: '#000005' }}
     >
-      <ambientLight intensity={0.25} color="#334466" />
-      <hemisphereLight args={['#223366', '#000000', 0.4]} />
+      <ambientLight intensity={0.04} color="#223355" />
+      <hemisphereLight args={['#112244', '#000000', 0.15]} />
 
-      {/* CameraRig replaces raw OrbitControls */}
       <CameraRig />
-
       <StarField count={8000} radius={800} />
 
       <Suspense fallback={null}>

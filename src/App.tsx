@@ -26,7 +26,6 @@ function AppUI() {
 
   return (
     <>
-      {/* Right panel */}
       {showPrayer ? (
         <PrayerObservatory onClose={() => setShowPrayer(false)} />
       ) : isEarth ? (
@@ -35,7 +34,6 @@ function AppUI() {
         <InfoPanel />
       )}
 
-      {/* Prayer toggle button */}
       <button
         onClick={() => setShowPrayer((v) => !v)}
         style={{
@@ -47,7 +45,9 @@ function AppUI() {
           background:     showPrayer
             ? 'rgba(167,139,250,0.3)'
             : 'rgba(5,5,20,0.80)',
-          border:         `1px solid ${showPrayer ? 'rgba(167,139,250,0.6)' : 'rgba(255,255,255,0.1)'}`,
+          border:         `1px solid ${showPrayer
+            ? 'rgba(167,139,250,0.6)'
+            : 'rgba(255,255,255,0.1)'}`,
           borderRadius:   '20px',
           color:          showPrayer ? '#A78BFA' : 'rgba(255,255,255,0.6)',
           padding:        '8px 20px',

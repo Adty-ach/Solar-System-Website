@@ -1,40 +1,61 @@
 import { useEffect, useRef } from 'react'
-import { useSimStore } from '../store/useSimStore'
+import { useSimStore }        from '../store/useSimStore'
 
-// Push to Zustand at max 10fps — planets will read simTime
-// via useFrame at full 60fps using a shared ref instead.
-const STORE_SYNC_MS = 100
+const STORE_SYNC_MS = 50   // 20fps store updates — smooth enough
 
 export function useSimTime(): void {
-  const setSimTime      = useSimStore((s) => s.setSimTime)
-  const paused          = useSimStore((s) => s.paused)
-  const speedMultiplier = useSimStore((s) => s.speedMultiplier)
+  const setSimTime = useSimStore((s) => s.setSimTime)
 
-  // Internal clock — no React state, no re-renders
+  // Internal high-res clock — never triggers re-renders
   const simMs    = useRef<number>(Date.now())
   const lastReal = useRef<number>(performance.now())
   const lastSync = useRef<number>(0)
   const rafId    = useRef<number>(0)
 
-  // Mirror latest values into refs so the loop never restarts
-  const pausedRef = useRef(paused)
-  const speedRef  = useRef(speedMultiplier)
+  // Mirror store values into refs — loop never restarts
+  const pausedRef = useRef(false)
+  const speedRef  = useRef<number>(1)
 
-  useEffect(() => { pausedRef.current = paused          }, [paused])
-  useEffect(() => { speedRef.current  = speedMultiplier }, [speedMultiplier])
+  // Sync simMs when store is externally modified (jumpBy, resetToEpoch)
+  const externalSimMs = useSimStore((s) => s.simTime.getTime())
+  const lastExternal  = useRef<number>(externalSimMs)
+
+  useEffect(() => {
+    // Detect external jump — sync internal clock
+    if (Math.abs(externalSimMs - simMs.current) > 200) {
+      simMs.current    = externalSimMs
+      lastExternal.current = externalSimMs
+    }
+  }, [externalSimMs])
+
+  useEffect(() => {
+    const unsub = useSimStore.subscribe((state) => {
+      pausedRef.current = state.paused
+      speedRef.current  = state.speedMultiplier
+    })
+    // Set initial values
+    const s = useSimStore.getState()
+    pausedRef.current = s.paused
+    speedRef.current  = s.speedMultiplier
+    simMs.current     = s.simTime.getTime()
+    return unsub
+  }, [])
 
   useEffect(() => {
     lastReal.current = performance.now()
 
     function tick(now: number): void {
-      const delta = now - lastReal.current
+      const realDelta = now - lastReal.current
       lastReal.current = now
 
+      // Cap delta to avoid spiral after tab switch
+      const cappedDelta = Math.min(realDelta, 100)
+
       if (!pausedRef.current) {
-        simMs.current += delta * speedRef.current
+        simMs.current += cappedDelta * speedRef.current
       }
 
-      // Throttle Zustand writes to prevent cascading re-renders
+      // Push to store at 20fps
       if (now - lastSync.current >= STORE_SYNC_MS) {
         setSimTime(new Date(simMs.current))
         lastSync.current = now
@@ -45,5 +66,5 @@ export function useSimTime(): void {
 
     rafId.current = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(rafId.current)
-  }, [setSimTime]) // stable ref — loop never restarts
+  }, [setSimTime])
 }

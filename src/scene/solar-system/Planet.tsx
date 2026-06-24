@@ -1,14 +1,33 @@
-import { useRef, Suspense }        from 'react'
-import { useFrame }                from '@react-three/fiber'
-import { Sphere, useTexture }      from '@react-three/drei'
-import * as THREE                  from 'three'
-import { useSimStore }             from '../../store/useSimStore'
-import { useSceneStore }           from '../../store/useSceneStore'
+import { useRef, Suspense }   from 'react'
+import { useFrame }           from '@react-three/fiber'
+import { Sphere, useTexture } from '@react-three/drei'
+import * as THREE             from 'three'
+import { useSimStore }        from '../../store/useSimStore'
+import { useSceneStore }      from '../../store/useSceneStore'
+import { useLocationStore }   from '../../store/useLocationStore'
 import { calculatePlanetPosition } from '../../engines/orbital'
-import type { PlanetName }         from '../../engines/orbital'
-import type { PlanetConfig }       from './planetData'
-import { useLocationStore } from '../../store/useLocationStore'
+import type { PlanetName }    from '../../engines/orbital'
+import type { PlanetConfig }  from './planetData'
 
+// ── GMST Earth rotation ───────────────────────────────────────
+function calcEarthRotation(date: Date): number {
+  const JD = 2440587.5 + date.getTime() / 86_400_000
+
+  // GMST in degrees — IAU formula
+  const GMST = (
+    280.46061837
+    + 360.98564736629 * (JD - 2451545.0)
+  )
+
+  // Normalize to 0-360
+  const gmstNorm = ((GMST % 360) + 360) % 360
+
+  // Convert to radians
+  // Subtract PI/2 to align texture (solarsystemscope offset)
+  return (gmstNorm * Math.PI / 180) - Math.PI / 2
+}
+
+// ── Location marker ───────────────────────────────────────────
 function LocationMarker() {
   const lat = useLocationStore((s) => s.latitude)
   const lon = useLocationStore((s) => s.longitude)
@@ -24,57 +43,55 @@ function LocationMarker() {
   return (
     <group position={[x, y, z]}>
       <mesh>
-        <sphereGeometry args={[0.02, 8, 8]} />
+        <sphereGeometry args={[0.025, 8, 8]} />
         <meshBasicMaterial color="#FF4444" />
       </mesh>
     </group>
   )
 }
 
-interface PlanetProps {
-  planetId: PlanetName
-  config:   PlanetConfig
-  onSelect: (id: string) => void
-}
-
-function PlanetFallback({ radius, color }: { radius: number; color: string }) {
-  return (
-    <Sphere args={[radius, 32, 32]}>
-      <meshStandardMaterial color={color} roughness={0.8} />
-    </Sphere>
-  )
-}
-
+// ── Earth mesh ────────────────────────────────────────────────
 function EarthMesh({ radius }: { radius: number }) {
+  const earthRef = useRef<THREE.Group>(null)
   const cloudRef = useRef<THREE.Mesh>(null)
+  const simTime  = useSimStore((s) => s.simTime)
+
   const [earthTex, cloudTex, nightTex] = useTexture([
     '/textures/earth.jpg',
     '/textures/earth_clouds.jpg',
     '/textures/earth_night.jpg',
   ])
 
-  useFrame((_, delta) => {
-    if (cloudRef.current) cloudRef.current.rotation.y += delta * 0.012
+  useFrame(() => {
+    const rot = calcEarthRotation(simTime)
+    if (earthRef.current) {
+      earthRef.current.rotation.y = rot
+    }
+    if (cloudRef.current) {
+      // Clouds slightly offset from surface rotation
+      cloudRef.current.rotation.y = rot + (simTime.getTime() / 86_400_000) * 0.005
+    }
   })
 
   return (
-    <>
-      {/* Earth surface */}
+    <group ref={earthRef}>
+
+      {/* Day surface */}
       <Sphere args={[radius, 64, 64]}>
         <meshStandardMaterial
           map={earthTex}
-          roughness={0.7}
-          metalness={0.1}
+          roughness={0.85}
+          metalness={0.0}
         />
       </Sphere>
 
-      {/* Night layer */}
+      {/* Night / city lights — additive so only visible on dark side */}
       <mesh>
         <sphereGeometry args={[radius * 1.001, 64, 64]} />
         <meshBasicMaterial
           map={nightTex}
           transparent
-          opacity={0.8}
+          opacity={0.95}
           blending={THREE.AdditiveBlending}
           depthWrite={false}
         />
@@ -86,37 +103,45 @@ function EarthMesh({ radius }: { radius: number }) {
         <meshStandardMaterial
           map={cloudTex}
           transparent
-          opacity={0.35}
+          opacity={0.30}
           depthWrite={false}
         />
       </mesh>
 
       {/* Atmosphere glow */}
       <mesh>
-        <sphereGeometry args={[radius * 1.06, 32, 32]} />
+        <sphereGeometry args={[radius * 1.07, 32, 32]} />
         <meshBasicMaterial
-          color="#4488FF"
+          color="#3366FF"
           transparent
-          opacity={0.08}
+          opacity={0.06}
           side={THREE.BackSide}
           depthWrite={false}
         />
       </mesh>
 
-      {/* Location marker — scaled to planet radius */}
+      {/* Location marker — inside Earth group so rotates with it */}
       <group scale={[radius, radius, radius]}>
         <LocationMarker />
       </group>
-    </>
+
+    </group>
   )
 }
 
+// ── Saturn ring ───────────────────────────────────────────────
 function SaturnRing({ radius }: { radius: number }) {
   const ringTex = useTexture('/textures/saturn_ring.png')
   return (
     <mesh rotation={[Math.PI / 2.5, 0, 0]}>
       <ringGeometry args={[radius * 1.4, radius * 2.4, 128]} />
-      <meshBasicMaterial map={ringTex} transparent opacity={0.85} side={THREE.DoubleSide} depthWrite={false} />
+      <meshBasicMaterial
+        map={ringTex}
+        transparent
+        opacity={0.85}
+        side={THREE.DoubleSide}
+        depthWrite={false}
+      />
     </mesh>
   )
 }
@@ -125,11 +150,18 @@ function SaturnRingFallback({ radius }: { radius: number }) {
   return (
     <mesh rotation={[Math.PI / 2.5, 0, 0]}>
       <ringGeometry args={[radius * 1.4, radius * 2.4, 128]} />
-      <meshBasicMaterial color="#C8B870" transparent opacity={0.55} side={THREE.DoubleSide} depthWrite={false} />
+      <meshBasicMaterial
+        color="#C8B870"
+        transparent
+        opacity={0.55}
+        side={THREE.DoubleSide}
+        depthWrite={false}
+      />
     </mesh>
   )
 }
 
+// ── Generic planet ────────────────────────────────────────────
 function PlanetMesh({
   radius,
   texturePath,
@@ -144,24 +176,52 @@ function PlanetMesh({
   const tex = useTexture(texturePath)
   return (
     <Sphere args={[radius, 64, 64]}>
-      <meshStandardMaterial map={tex} roughness={roughness} metalness={metalness} />
+      <meshStandardMaterial
+        map={tex}
+        roughness={roughness}
+        metalness={metalness}
+      />
     </Sphere>
   )
 }
 
-export function Planet({ planetId, config, onSelect }: PlanetProps) {
-  const groupRef     = useRef<THREE.Group>(null)
-  const meshRef      = useRef<THREE.Group>(null)
-  const simTime      = useSimStore((s) => s.simTime)
-  const setCamMode   = useSceneStore((s) => s.setCameraMode)
-  const focusTarget  = useSceneStore((s) => s.focusTarget)
+function PlanetFallback({ radius, color }: { radius: number; color: string }) {
+  return (
+    <Sphere args={[radius, 32, 32]}>
+      <meshStandardMaterial color={color} roughness={0.8} />
+    </Sphere>
+  )
+}
 
-  useFrame((_, delta) => {
+// ── Main Planet ───────────────────────────────────────────────
+interface PlanetProps {
+  planetId: PlanetName
+  config:   PlanetConfig
+  onSelect: (id: string) => void
+}
+
+export function Planet({ planetId, config, onSelect }: PlanetProps) {
+  const groupRef    = useRef<THREE.Group>(null)
+  const meshRef     = useRef<THREE.Group>(null)
+  const simTime     = useSimStore((s) => s.simTime)
+  const setCamMode  = useSceneStore((s) => s.setCameraMode)
+  const focusTarget = useSceneStore((s) => s.focusTarget)
+
+  useFrame(() => {
     if (!groupRef.current) return
+
+    // Position from simTime — deterministic
     const pos = calculatePlanetPosition(planetId, simTime, config.scaleAU)
     groupRef.current.position.set(pos.x, 0, pos.z)
-    if (meshRef.current) {
-      meshRef.current.rotation.y += config.rotationSpeed * delta
+
+    // Self rotation — Earth handled by EarthMesh
+    if (meshRef.current && planetId !== 'earth') {
+      const rotAngle = (
+        (simTime.getTime() / 86_400_000)
+        * Math.PI * 2
+        * config.rotationSpeed
+      ) % (Math.PI * 2)
+      meshRef.current.rotation.y = rotAngle
     }
   })
 
@@ -179,11 +239,15 @@ export function Planet({ planetId, config, onSelect }: PlanetProps) {
         onPointerOut={()  => { document.body.style.cursor = 'auto'    }}
       >
         {planetId === 'earth' ? (
-          <Suspense fallback={<PlanetFallback radius={config.radius} color={config.color} />}>
+          <Suspense fallback={
+            <PlanetFallback radius={config.radius} color={config.color} />
+          }>
             <EarthMesh radius={config.radius} />
           </Suspense>
         ) : (
-          <Suspense fallback={<PlanetFallback radius={config.radius} color={config.color} />}>
+          <Suspense fallback={
+            <PlanetFallback radius={config.radius} color={config.color} />
+          }>
             <PlanetMesh
               radius={config.radius}
               texturePath={`/textures/${planetId}.jpg`}
@@ -194,7 +258,9 @@ export function Planet({ planetId, config, onSelect }: PlanetProps) {
         )}
 
         {planetId === 'saturn' && (
-          <Suspense fallback={<SaturnRingFallback radius={config.radius} />}>
+          <Suspense fallback={
+            <SaturnRingFallback radius={config.radius} />
+          }>
             <SaturnRing radius={config.radius} />
           </Suspense>
         )}
