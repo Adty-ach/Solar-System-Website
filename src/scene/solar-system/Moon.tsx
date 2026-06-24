@@ -36,6 +36,8 @@ export function Moon() {
   const simTime  = useSimStore((s) => s.simTime)
   const setSelected     = useSceneStore((s) => s.setSelectedObject)
   const setCameraTarget = useSceneStore((s) => s.setCameraTarget)
+  const setCamMode   = useSceneStore((s) => s.setCameraMode)
+  const focusTarget  = useSceneStore((s) => s.focusTarget)
 
   const moonTex = useTexture('/textures/moon.jpg')
 
@@ -57,6 +59,8 @@ export function Moon() {
     e.stopPropagation()
     setSelected('moon')
     setCameraTarget('moon')
+    setCamMode('focus')
+    focusTarget()
   }
 
   return (

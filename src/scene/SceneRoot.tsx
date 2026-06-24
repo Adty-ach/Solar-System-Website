@@ -1,13 +1,9 @@
-import { Canvas }        from '@react-three/fiber'
-import { OrbitControls } from '@react-three/drei'
-import { Suspense }      from 'react'
-import { StarField }     from './environment/StarField'
-import { SolarSystem }   from './solar-system/SolarSystem'
-import { MilkyWay }      from './environment/MilkyWay'
-
-function SceneFallback() {
-  return null
-}
+import { Canvas }    from '@react-three/fiber'
+import { Suspense }  from 'react'
+import { StarField } from './environment/StarField'
+import { SolarSystem } from './solar-system/SolarSystem'
+import { MilkyWay }  from './environment/MilkyWay'
+import { CameraRig } from './CameraRig'
 
 export function SceneRoot() {
   return (
@@ -16,7 +12,7 @@ export function SceneRoot() {
         position: [0, 120, 280],
         fov:      55,
         near:     0.1,
-        far:      2000,
+        far:      3000,        // increased for Neptune
       }}
       gl={{
         antialias:           true,
@@ -25,42 +21,20 @@ export function SceneRoot() {
       }}
       style={{ background: '#000005' }}
     >
-      {/* Base ambient — mencegah sisi gelap pure black */}
       <ambientLight intensity={0.25} color="#334466" />
+      <hemisphereLight args={['#223366', '#000000', 0.4]} />
 
-      {/* Hemisphere — langit biru gelap, tanah hitam */}
-      <hemisphereLight
-        args={['#223366', '#000000', 0.4]}
-      />
-
-      <OrbitControls
-        enablePan
-        enableZoom
-        enableRotate
-        enableDamping
-        dampingFactor={0.06}
-        minDistance={15}
-        maxDistance={1000}
-        zoomSpeed={0.8}
-        rotateSpeed={0.5}
-        panSpeed={0.8}
-        minPolarAngle={0}
-        maxPolarAngle={Math.PI}
-        mouseButtons={{
-          LEFT:   0,
-          MIDDLE: 1,
-          RIGHT:  2,
-        }}
-      />
+      {/* CameraRig replaces raw OrbitControls */}
+      <CameraRig />
 
       <StarField count={8000} radius={800} />
 
-      <Suspense fallback={<SceneFallback />}>
+      <Suspense fallback={null}>
         <MilkyWay />
         <SolarSystem />
       </Suspense>
 
-      <fog attach="fog" args={['#000010', 600, 1600]} />
+      <fog attach="fog" args={['#000010', 800, 2400]} />
     </Canvas>
   )
 }

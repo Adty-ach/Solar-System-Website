@@ -1,7 +1,9 @@
-import { useSceneStore }  from '../store/useSceneStore'
-import { PLANET_CONFIGS } from '../scene/solar-system/planetData'
-import { getMoonPhase }   from '../scene/solar-system/Moon'
-import { useSimStore }    from '../store/useSimStore'
+import { useSceneStore }       from '../store/useSceneStore'
+import { PLANET_CONFIGS }      from '../scene/solar-system/planetData'
+import { useSimStore }         from '../store/useSimStore'
+import { useAstronomyStore }   from '../store/useAstronomyStore'
+import { useLocationStore }    from '../store/useLocationStore'
+import { decimalHoursToHHMM }  from '../engines/astronomy'
 import { motion, AnimatePresence } from 'framer-motion'
 
 // ── Sun static data ───────────────────────────────────────────
@@ -18,6 +20,21 @@ const SUN_DATA = {
   description:     'The Sun is the star at the heart of our Solar System — a nearly perfect sphere of hot plasma generating energy through nuclear fusion. Every second, it converts 600 million tons of hydrogen into helium, releasing energy that travels 150 million km to warm our planet. Its gravitational pull holds all eight planets in their orbits. *Around the Milky Way galactic center.',
 }
 
+// ── Types ─────────────────────────────────────────────────────
+interface PanelData {
+  name:            string
+  diameter:        string
+  mass:            string
+  gravity:         string
+  temperature:     string
+  distanceFromSun: string
+  orbitalPeriod:   string
+  rotationPeriod:  string
+  fact:            string
+  description:     string
+  extra?:          { label: string; value: string }[]
+}
+
 // ── Data row ──────────────────────────────────────────────────
 function DataRow({ label, value }: { label: string; value: string }) {
   return (
@@ -29,12 +46,37 @@ function DataRow({ label, value }: { label: string; value: string }) {
       borderBottom:   '1px solid rgba(255,255,255,0.06)',
       gap:            '12px',
     }}>
-      <span style={{ color: 'rgba(255,255,255,0.45)', fontSize: '11px', whiteSpace: 'nowrap' }}>
+      <span style={{
+        color:      'rgba(255,255,255,0.45)',
+        fontSize:   '11px',
+        whiteSpace: 'nowrap',
+      }}>
         {label}
       </span>
-      <span style={{ color: '#E2E8F0', fontSize: '12px', textAlign: 'right', fontWeight: 500 }}>
+      <span style={{
+        color:      '#E2E8F0',
+        fontSize:   '12px',
+        textAlign:  'right',
+        fontWeight: 500,
+      }}>
         {value}
       </span>
+    </div>
+  )
+}
+
+// ── Section divider ───────────────────────────────────────────
+function SectionLabel({ text }: { text: string }) {
+  return (
+    <div style={{
+      fontSize:      '9px',
+      color:         '#93C5FD',
+      textTransform: 'uppercase',
+      letterSpacing: '1.5px',
+      marginTop:     '10px',
+      marginBottom:  '4px',
+    }}>
+      {text}
     </div>
   )
 }
@@ -43,27 +85,37 @@ function DataRow({ label, value }: { label: string; value: string }) {
 export function InfoPanel() {
   const selectedObject = useSceneStore((s) => s.selectedObject)
   const setSelected    = useSceneStore((s) => s.setSelectedObject)
-  const simTime        = useSimStore((s) => s.simTime)
+  const astro          = useAstronomyStore((s) => s.result)
+  const utcOffset      = useLocationStore((s) => s.utcOffset)
 
-  // Build data object based on selected
-  let data: {
-    name:            string
-    diameter:        string
-    mass:            string
-    gravity:         string
-    temperature:     string
-    distanceFromSun: string
-    orbitalPeriod:   string
-    rotationPeriod:  string
-    fact:            string
-    description:     string
-    extra?:          { label: string; value: string }[]
-  } | null = null
+  // Suppress unused warning — simTime kept for future use
+  useSimStore((s) => s.simTime)
 
+  let data: PanelData | null = null
+
+  // ── Sun ────────────────────────────────────────────────────
   if (selectedObject === 'sun') {
-    data = SUN_DATA
+    data = {
+      ...SUN_DATA,
+      extra: astro ? [
+        { label: 'Elevation',        value: `${astro.solar.elevation}°`          },
+        { label: 'Azimuth',          value: `${astro.solar.azimuth}°`            },
+        { label: 'Declination',      value: `${astro.solar.declination}°`        },
+        { label: 'Hour Angle',       value: `${astro.solar.hourAngle}°`          },
+        { label: 'Equation of Time', value: `${astro.solar.equationOfTime} min`  },
+        { label: 'Distance',         value: `${astro.solar.distance} AU`         },
+        { label: 'Solar Noon',       value: decimalHoursToHHMM(astro.events.solarNoon, utcOffset)                                              },
+        { label: 'Sunrise',          value: astro.events.sunrise   ? decimalHoursToHHMM(astro.events.sunrise,   utcOffset) : 'N/A'            },
+        { label: 'Sunset',           value: astro.events.sunset    ? decimalHoursToHHMM(astro.events.sunset,    utcOffset) : 'N/A'            },
+        { label: 'Day Length',       value: astro.events.dayLength ? `${astro.events.dayLength.toFixed(2)} hrs` : 'N/A'                       },
+        { label: 'Civil Dawn',       value: astro.events.dawnCivil ? decimalHoursToHHMM(astro.events.dawnCivil, utcOffset) : 'N/A'           },
+        { label: 'Civil Dusk',       value: astro.events.duskCivil ? decimalHoursToHHMM(astro.events.duskCivil, utcOffset) : 'N/A'           },
+      ] : [],
+    }
+
+  // ── Moon ───────────────────────────────────────────────────
   } else if (selectedObject === 'moon') {
-    const phase = getMoonPhase(simTime)
+    const moon = astro?.moon
     data = {
       name:            'Moon',
       diameter:        '3,474 km',
@@ -74,14 +126,18 @@ export function InfoPanel() {
       orbitalPeriod:   '27.3 days',
       rotationPeriod:  '27.3 days (tidally locked)',
       fact:            'The Moon is slowly moving away from Earth at 3.8 cm per year.',
-      description:     'The Moon is Earth\'s only natural satellite and the fifth largest moon in the Solar System. Tidally locked to Earth, we always see the same face. Its gravitational pull drives Earth\'s ocean tides and stabilizes our planet\'s axial tilt. The Moon was likely formed from debris after a Mars-sized body collided with early Earth.',
-      extra: [
-        { label: 'Current Phase',   value: phase.name          },
-        { label: 'Illumination',    value: phase.illumination + '%' },
-        { label: 'Distance Earth',  value: '384,400 km'        },
-        { label: 'Surface Gravity', value: '1.62 m/s²'         },
-      ],
+      description:     "The Moon is Earth's only natural satellite. Tidally locked to Earth, we always see the same face. Its gravitational pull drives ocean tides and stabilizes Earth's axial tilt.",
+      extra: moon ? [
+        { label: 'Phase',        value: moon.phaseName                          },
+        { label: 'Illumination', value: `${moon.illumination}%`                 },
+        { label: 'Age',          value: `${moon.age} days`                      },
+        { label: 'Distance',     value: `${moon.distance.toLocaleString()} km`  },
+        { label: 'Elevation',    value: `${moon.elevation}°`                    },
+        { label: 'Azimuth',      value: `${moon.azimuth}°`                      },
+      ] : [],
     }
+
+  // ── Planets ────────────────────────────────────────────────
   } else if (selectedObject && PLANET_CONFIGS[selectedObject]) {
     data = PLANET_CONFIGS[selectedObject]
   }
@@ -97,9 +153,9 @@ export function InfoPanel() {
           transition={{ duration: 0.25, ease: 'easeOut' }}
           style={{
             position:       'fixed',
-            top:            '50%',
+            top:            '16px',
             right:          '20px',
-            transform:      'translateY(-50%)',
+            bottom:         '16px',
             width:          '290px',
             background:     'rgba(5, 10, 25, 0.90)',
             border:         '1px solid rgba(100,160,255,0.2)',
@@ -109,13 +165,21 @@ export function InfoPanel() {
             zIndex:         20,
             fontFamily:     'system-ui, sans-serif',
             color:          '#fff',
-            maxHeight:      '85vh',
             overflowY:      'auto',
           }}
         >
           {/* Header */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-            <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 600, color: '#93C5FD' }}>
+          <div style={{
+            display:        'flex',
+            justifyContent: 'space-between',
+            marginBottom:   '8px',
+          }}>
+            <h2 style={{
+              margin:     0,
+              fontSize:   '20px',
+              fontWeight: 600,
+              color:      '#93C5FD',
+            }}>
               {data.name}
             </h2>
             <button
@@ -136,17 +200,18 @@ export function InfoPanel() {
 
           {/* Description */}
           <p style={{
-            fontSize:    '12px',
-            color:       'rgba(255,255,255,0.6)',
-            lineHeight:  '1.6',
-            marginBottom: '12px',
-            borderBottom: '1px solid rgba(255,255,255,0.08)',
+            fontSize:      '12px',
+            color:         'rgba(255,255,255,0.6)',
+            lineHeight:    '1.6',
+            marginBottom:  '12px',
+            borderBottom:  '1px solid rgba(255,255,255,0.08)',
             paddingBottom: '12px',
           }}>
             {data.description}
           </p>
 
-          {/* Data rows */}
+          {/* Physical data */}
+          <SectionLabel text="Physical Data" />
           <DataRow label="Diameter"        value={data.diameter}        />
           <DataRow label="Mass"            value={data.mass}            />
           <DataRow label="Gravity"         value={data.gravity}         />
@@ -155,23 +220,28 @@ export function InfoPanel() {
           <DataRow label="Orbital Period"  value={data.orbitalPeriod}   />
           <DataRow label="Rotation Period" value={data.rotationPeriod}  />
 
-          {/* Extra rows (Moon phase etc) */}
-          {data.extra?.map((row) => (
-            <DataRow key={row.label} label={row.label} value={row.value} />
-          ))}
+          {/* Live astronomy data (Sun + Moon) */}
+          {data.extra && data.extra.length > 0 && (
+            <>
+              <SectionLabel text="Live Astronomy Data" />
+              {data.extra.map((row) => (
+                <DataRow key={row.label} label={row.label} value={row.value} />
+              ))}
+            </>
+          )}
 
           {/* Did you know */}
           <div style={{
-            marginTop:     '12px',
-            padding:       '12px',
-            background:    'rgba(100,160,255,0.08)',
-            borderRadius:  '10px',
-            border:        '1px solid rgba(100,160,255,0.15)',
+            marginTop:    '14px',
+            padding:      '12px',
+            background:   'rgba(100,160,255,0.08)',
+            borderRadius: '10px',
+            border:       '1px solid rgba(100,160,255,0.15)',
           }}>
             <div style={{
-              fontSize:     '10px',
-              color:        '#93C5FD',
-              marginBottom: '6px',
+              fontSize:      '10px',
+              color:         '#93C5FD',
+              marginBottom:  '6px',
               letterSpacing: '1px',
               textTransform: 'uppercase',
             }}>

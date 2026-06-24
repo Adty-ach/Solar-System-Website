@@ -17,6 +17,8 @@ export function Sun({ radius = 6 }: SunProps) {
   const sunTex         = useTexture('/textures/sun.jpg')
   const setSelected    = useSceneStore((s) => s.setSelectedObject)
   const setCameraTarget = useSceneStore((s) => s.setCameraTarget)
+  const setCamMode   = useSceneStore((s) => s.setCameraMode)
+  const focusTarget  = useSceneStore((s) => s.focusTarget)
 
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime()
@@ -40,6 +42,8 @@ export function Sun({ radius = 6 }: SunProps) {
     e.stopPropagation()
     setSelected('sun')
     setCameraTarget('sun')
+    setCamMode('focus')
+    focusTarget()
   }
 
   return (
