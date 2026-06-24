@@ -20,7 +20,6 @@ function Engines() {
 
 function AppUI() {
   const selectedObject  = useSceneStore((s) => s.selectedObject)
-  const setSelected     = useSceneStore((s) => s.setSelectedObject)
   const [showPrayer, setShowPrayer] = useState(false)
 
   const isEarth = selectedObject === 'earth'

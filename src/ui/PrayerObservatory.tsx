@@ -1,7 +1,6 @@
 import { usePrayerStore }    from '../store/usePrayerStore'
 import { useSimStore }       from '../store/useSimStore'
 import { useLocationStore }  from '../store/useLocationStore'
-import { motion, AnimatePresence } from 'framer-motion'
 import {
   PRAYER_ORDER,
   PRAYER_DISPLAY_NAMES,
@@ -144,11 +143,7 @@ export function PrayerObservatory({ onClose }: PrayerObservatoryProps) {
   const countdown   = schedule ? formatCountdown(schedule.secondsToNext) : '--:--:--'
 
   return (
-    <motion.div
-      initial={{ opacity: 0, x: 40  }}
-      animate={{ opacity: 1, x: 0   }}
-      exit={{    opacity: 0, x: 40  }}
-      transition={{ duration: 0.3, ease: 'easeOut' }}
+    <div
       style={{
         position:       'fixed',
         top:            '16px',
@@ -284,6 +279,6 @@ export function PrayerObservatory({ onClose }: PrayerObservatoryProps) {
         💡 Prayer times are derived from solar geometry. Fajr and Isha use depression angles, Dhuhr uses solar noon, and Asr uses shadow length ratios — all calculated astronomically.
       </div>
 
-    </motion.div>
+    </div>
   )
 }
