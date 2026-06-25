@@ -16,21 +16,23 @@ export function usePrayer(): void {
 
   const lastCalcMs  = useRef<number>(0)
   const lastDateKey = useRef<string>('')
+  const lastMethod  = useRef<string>('')        // ← tambah ini
 
   useEffect(() => {
-    const now     = simTime.getTime()
-    const dateKey = simTime.toISOString().slice(0, 10)
+    const now       = simTime.getTime()
+    const dateKey   = simTime.toISOString().slice(0, 10)
 
-    const dateChanged    = dateKey !== lastDateKey.current
+    const dateChanged    = dateKey  !== lastDateKey.current
+    const methodChanged  = method   !== lastMethod.current   // ← tambah ini
     const intervalPassed = Math.abs(now - lastCalcMs.current) >= RECALC_INTERVAL_MS
 
-    if (!dateChanged && !intervalPassed) return
+    if (!dateChanged && !methodChanged && !intervalPassed) return
 
     lastCalcMs.current  = now
     lastDateKey.current = dateKey
+    lastMethod.current  = method                             // ← tambah ini
 
-    // Recalculate full schedule — including secondsToNext
     const schedule = calcPrayerSchedule(simTime, lat, lon, utcOffset, method)
     setSchedule(schedule)
-  }, [simTime, lat, lon, utcOffset, method, setSchedule])
+  }, [simTime, lat, lon, utcOffset, method, setSchedule])   // method sudah ada di deps
 }

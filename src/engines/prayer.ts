@@ -34,6 +34,7 @@ export type PrayerMethod =
   | 'Egypt'    // Egyptian General Authority
   | 'Makkah'   // Umm Al-Qura University
   | 'Karachi'  // University of Islamic Sciences Karachi
+  | 'Hanafi'   // Hanafi school of Islamic jurisprudence
 
 export interface MethodParams {
   fajrAngle:    number   // solar depression angle for Fajr
@@ -74,6 +75,12 @@ export const PRAYER_METHODS: Record<PrayerMethod, MethodParams> = {
     ishaAngle:   18,
     asrFactor:   1,
     description: 'Karachi — used in Pakistan, Bangladesh, India, Afghanistan',
+  },
+    Hanafi: {
+    fajrAngle:   18,
+    ishaAngle:   18,
+    asrFactor:   2,       // ← shadow factor 2, Asr lebih telat
+    description: 'Hanafi — Asr when shadow = 2× object height',
   },
 }
 

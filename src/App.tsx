@@ -10,6 +10,8 @@ import { useAstronomy }   from './hooks/useAstronomy'
 import { useUserLocation } from './hooks/useUserLocation'
 import { usePrayer }      from './hooks/usePrayer'
 import { useSceneStore }  from './store/useSceneStore'
+import { DashboardMenu } from './ui/dashboard/DashboardMenu'
+
 
 function Engines() {
   useAstronomy()
@@ -64,6 +66,8 @@ function AppUI() {
       </button>
 
       <PlanetNav />
+
+      <DashboardMenu />
 
       <div style={{
         position:  'fixed',
