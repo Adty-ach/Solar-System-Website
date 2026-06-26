@@ -1,17 +1,15 @@
-import React              from 'react'
-import { useState }       from 'react'
-import { SceneRoot }      from './scene/SceneRoot'
-import { TimeControls }   from './ui/TimeControls'
-import { InfoPanel }      from './ui/InfoPanel'
-import { PlanetNav }      from './ui/PlanetNav'
-import { EarthObservatory }  from './ui/EarthObservatory'
+import React, { useState, useEffect } from 'react'
+import { SceneRoot }        from './scene/SceneRoot'
+import { TimeControls }     from './ui/TimeControls'
+import { InfoPanel }        from './ui/InfoPanel'
+import { PlanetNav }        from './ui/PlanetNav'
+import { EarthObservatory } from './ui/EarthObservatory'
 import { PrayerObservatory } from './ui/PrayerObservatory'
-import { useAstronomy }   from './hooks/useAstronomy'
-import { useUserLocation } from './hooks/useUserLocation'
-import { usePrayer }      from './hooks/usePrayer'
-import { useSceneStore }  from './store/useSceneStore'
-import { DashboardMenu } from './ui/dashboard/DashboardMenu'
-
+import { DashboardMenu }    from './ui/dashboard/DashboardMenu'
+import { useAstronomy }     from './hooks/useAstronomy'
+import { useUserLocation }  from './hooks/useUserLocation'
+import { usePrayer }        from './hooks/usePrayer'
+import { useSceneStore }    from './store/useSceneStore'
 
 function Engines() {
   useAstronomy()
@@ -21,21 +19,26 @@ function Engines() {
 }
 
 function AppUI() {
-  const selectedObject  = useSceneStore((s) => s.selectedObject)
+  const selectedObject = useSceneStore((s) => s.selectedObject)
   const [showPrayer, setShowPrayer] = useState(false)
 
-  const isEarth = selectedObject === 'earth'
+  // Listen for prayer panel trigger from dashboard shortcut
+  useEffect(() => {
+    function onOpen() { setShowPrayer(true) }
+    window.addEventListener('open-prayer-observatory', onOpen)
+    return () => window.removeEventListener('open-prayer-observatory', onOpen)
+  }, [])
+
+  const showInfoPanel  = selectedObject !== null && selectedObject !== 'earth'
+  const showEarthObs   = selectedObject === 'earth'
 
   return (
     <>
-      {showPrayer ? (
-        <PrayerObservatory onClose={() => setShowPrayer(false)} />
-      ) : isEarth ? (
-        <EarthObservatory visible />
-      ) : (
-        <InfoPanel />
-      )}
+      {showInfoPanel && <InfoPanel />}
+      {showEarthObs  && <EarthObservatory visible />}
+      {showPrayer    && <PrayerObservatory onClose={() => setShowPrayer(false)} />}
 
+      {/* Prayer toggle button — top center */}
       <button
         onClick={() => setShowPrayer((v) => !v)}
         style={{
@@ -47,9 +50,9 @@ function AppUI() {
           background:     showPrayer
             ? 'rgba(167,139,250,0.3)'
             : 'rgba(5,5,20,0.80)',
-          border:         `1px solid ${showPrayer
-            ? 'rgba(167,139,250,0.6)'
-            : 'rgba(255,255,255,0.1)'}`,
+          border:         showPrayer
+            ? '1px solid rgba(167,139,250,0.6)'
+            : '1px solid rgba(255,255,255,0.1)',
           borderRadius:   '20px',
           color:          showPrayer ? '#A78BFA' : 'rgba(255,255,255,0.6)',
           padding:        '8px 20px',
@@ -58,7 +61,6 @@ function AppUI() {
           fontWeight:     600,
           backdropFilter: 'blur(12px)',
           fontFamily:     'system-ui',
-          letterSpacing:  '0.5px',
           transition:     'all 0.2s',
         }}
       >
@@ -66,7 +68,6 @@ function AppUI() {
       </button>
 
       <PlanetNav />
-
       <DashboardMenu />
 
       <div style={{

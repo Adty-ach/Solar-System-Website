@@ -4,11 +4,13 @@ import { Moon }          from './Moon'
 import { OrbitalPath }   from './OrbitalPath'
 import { PLANET_CONFIGS, PLANET_IDS } from './planetData'
 import { useSceneStore } from '../../store/useSceneStore'
+import { useUIStore }    from '../../store/useUIStore'
 import type { PlanetName } from '../../engines/orbital'
 
 export function SolarSystem() {
   const setSelectedObject = useSceneStore((s) => s.setSelectedObject)
   const setCameraTarget   = useSceneStore((s) => s.setCameraTarget)
+  const showOrbitLines    = useUIStore((s) => s.showOrbitLines)
 
   function handleSelect(id: string) {
     setSelectedObject(id as PlanetName)
@@ -19,7 +21,7 @@ export function SolarSystem() {
     <group>
       <Sun radius={6} />
 
-      {PLANET_IDS.map((id) => (
+      {showOrbitLines && PLANET_IDS.map((id) => (
         <OrbitalPath key={id} planet={id as PlanetName} scaleAU={28} />
       ))}
 

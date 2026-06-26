@@ -1,29 +1,23 @@
-import { useRef, Suspense }   from 'react'
-import { useFrame }           from '@react-three/fiber'
-import { Sphere, useTexture } from '@react-three/drei'
-import * as THREE             from 'three'
-import { useSimStore }        from '../../store/useSimStore'
-import { useSceneStore }      from '../../store/useSceneStore'
-import { useLocationStore }   from '../../store/useLocationStore'
-import { calculatePlanetPosition } from '../../engines/orbital'
-import type { PlanetName }    from '../../engines/orbital'
-import type { PlanetConfig }  from './planetData'
+import { useRef, Suspense }         from 'react'
+import { useFrame }                 from '@react-three/fiber'
+import { Sphere, useTexture, Html } from '@react-three/drei'
+import * as THREE                   from 'three'
+import { useSimStore }              from '../../store/useSimStore'
+import { useSceneStore }            from '../../store/useSceneStore'
+import { useLocationStore }         from '../../store/useLocationStore'
+import { useUIStore }               from '../../store/useUIStore'
+import { calculatePlanetPosition }  from '../../engines/orbital'
+import type { PlanetName }          from '../../engines/orbital'
+import type { PlanetConfig }        from './planetData'
 
-// ── GMST Earth rotation ───────────────────────────────────────
+// ── GMST Earth rotation — DO NOT CHANGE ──────────────────────
 function calcEarthRotation(date: Date): number {
   const JD = 2440587.5 + date.getTime() / 86_400_000
-
-  // GMST in degrees — IAU formula
   const GMST = (
     280.46061837
     + 360.98564736629 * (JD - 2451545.0)
   )
-
-  // Normalize to 0-360
   const gmstNorm = ((GMST % 360) + 360) % 360
-
-  // Convert to radians
-  // Subtract PI/2 to align texture (solarsystemscope offset)
   return (gmstNorm * Math.PI / 180) - Math.PI / 2
 }
 
@@ -50,6 +44,30 @@ function LocationMarker() {
   )
 }
 
+// ── Planet label ──────────────────────────────────────────────
+function PlanetLabel({ name, radius }: { name: string; radius: number }) {
+  return (
+    <Html
+      position={[0, radius + 1.8, 0]}
+      center
+      style={{ pointerEvents: 'none' }}
+    >
+      <div style={{
+        color:         'rgba(255,255,255,0.75)',
+        fontSize:      '11px',
+        fontFamily:    'system-ui',
+        fontWeight:    500,
+        letterSpacing: '0.5px',
+        textShadow:    '0 1px 4px rgba(0,0,0,0.8)',
+        whiteSpace:    'nowrap',
+        userSelect:    'none',
+      }}>
+        {name}
+      </div>
+    </Html>
+  )
+}
+
 // ── Earth mesh ────────────────────────────────────────────────
 function EarthMesh({ radius }: { radius: number }) {
   const earthRef = useRef<THREE.Group>(null)
@@ -68,15 +86,12 @@ function EarthMesh({ radius }: { radius: number }) {
       earthRef.current.rotation.y = rot
     }
     if (cloudRef.current) {
-      // Clouds slightly offset from surface rotation
       cloudRef.current.rotation.y = rot + (simTime.getTime() / 86_400_000) * 0.005
     }
   })
 
   return (
     <group ref={earthRef}>
-
-      {/* Day surface */}
       <Sphere args={[radius, 64, 64]}>
         <meshStandardMaterial
           map={earthTex}
@@ -85,7 +100,6 @@ function EarthMesh({ radius }: { radius: number }) {
         />
       </Sphere>
 
-      {/* Night / city lights — additive so only visible on dark side */}
       <mesh>
         <sphereGeometry args={[radius * 1.001, 64, 64]} />
         <meshBasicMaterial
@@ -97,7 +111,6 @@ function EarthMesh({ radius }: { radius: number }) {
         />
       </mesh>
 
-      {/* Cloud layer */}
       <mesh ref={cloudRef}>
         <sphereGeometry args={[radius * 1.02, 64, 64]} />
         <meshStandardMaterial
@@ -108,7 +121,6 @@ function EarthMesh({ radius }: { radius: number }) {
         />
       </mesh>
 
-      {/* Atmosphere glow */}
       <mesh>
         <sphereGeometry args={[radius * 1.07, 32, 32]} />
         <meshBasicMaterial
@@ -120,11 +132,9 @@ function EarthMesh({ radius }: { radius: number }) {
         />
       </mesh>
 
-      {/* Location marker — inside Earth group so rotates with it */}
       <group scale={[radius, radius, radius]}>
         <LocationMarker />
       </group>
-
     </group>
   )
 }
@@ -206,15 +216,14 @@ export function Planet({ planetId, config, onSelect }: PlanetProps) {
   const simTime     = useSimStore((s) => s.simTime)
   const setCamMode  = useSceneStore((s) => s.setCameraMode)
   const focusTarget = useSceneStore((s) => s.focusTarget)
+  const showLabels  = useUIStore((s) => s.showPlanetLabels)
 
   useFrame(() => {
     if (!groupRef.current) return
 
-    // Position from simTime — deterministic
     const pos = calculatePlanetPosition(planetId, simTime, config.scaleAU)
     groupRef.current.position.set(pos.x, 0, pos.z)
 
-    // Self rotation — Earth handled by EarthMesh
     if (meshRef.current && planetId !== 'earth') {
       const rotAngle = (
         (simTime.getTime() / 86_400_000)
@@ -225,16 +234,24 @@ export function Planet({ planetId, config, onSelect }: PlanetProps) {
     }
   })
 
+  function handleClick(e: any) {
+    e.stopPropagation()
+    onSelect(config.id)
+    setCamMode('focus')
+    focusTarget()
+  }
+
   return (
     <group ref={groupRef}>
+
+      {/* Label — at group level, not affected by planet rotation */}
+      {showLabels && (
+        <PlanetLabel name={config.name} radius={config.radius} />
+      )}
+
       <group
         ref={meshRef}
-        onClick={(e) => {
-          e.stopPropagation()
-          onSelect(config.id)
-          setCamMode('focus')
-          focusTarget()
-        }}
+        onClick={handleClick}
         onPointerOver={() => { document.body.style.cursor = 'pointer' }}
         onPointerOut={()  => { document.body.style.cursor = 'auto'    }}
       >
@@ -265,6 +282,7 @@ export function Planet({ planetId, config, onSelect }: PlanetProps) {
           </Suspense>
         )}
       </group>
+
     </group>
   )
 }

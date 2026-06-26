@@ -4,6 +4,12 @@ import { useUIStore }              from '../../store/useUIStore'
 import { HomePanel }               from './panels/HomePanel'
 import { AboutPanel }              from './panels/AboutPanel'
 import type { ActivePanel }        from '../../store/useUIStore'
+import { SolarSystemPanel } from './panels/SolarSystemPanel'
+import { AstronomyPanel }   from './panels/AstronomyPanel'
+import { LearnPanel }       from './panels/LearnPanel'
+import { SettingsPanel }    from './panels/SettingsPanel'
+import { EarthShortcutPanel }  from './panels/EarthShortcutPanel'
+import { PrayerShortcutPanel } from './panels/PrayerShortcutPanel'
 
 // ── Menu config ───────────────────────────────────────────────
 const MENU_ITEMS: { id: ActivePanel; icon: string; label: string }[] = [
@@ -21,19 +27,26 @@ const MENU_ITEMS: { id: ActivePanel; icon: string; label: string }[] = [
 // ── Panel renderer ────────────────────────────────────────────
 function PanelContent({ panel }: { panel: ActivePanel }) {
   if (panel === 'home')  return <HomePanel />
-  if (panel === 'about') return <AboutPanel />
+  if (panel === 'about')        return <AboutPanel />
+  if (panel === 'solar-system') return <SolarSystemPanel />
+  if (panel === 'astronomy')    return <AstronomyPanel />
+  if (panel === 'learn')        return <LearnPanel />
+  if (panel === 'settings')     return <SettingsPanel />
+  if (panel === 'earth')        return <EarthShortcutPanel />    // ← new
+  if (panel === 'prayer')       return <PrayerShortcutPanel />   // ← new
+
 
   // Placeholder for panels not yet implemented
   return (
     <div style={{
-      color:      'rgba(255,255,255,0.4)',
-      fontSize:   '13px',
-      padding:    '20px 0',
-      textAlign:  'center',
-      lineHeight: '1.8',
+      color:     'rgba(255,255,255,0.35)',
+      fontSize:  '13px',
+      padding:   '20px 0',
+      textAlign: 'center',
+      lineHeight:'1.8',
     }}>
       <div style={{ fontSize: '32px', marginBottom: '12px' }}>🚧</div>
-      This panel will be implemented next.
+      Coming soon.
     </div>
   )
 }
