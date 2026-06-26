@@ -262,7 +262,7 @@ export function DashboardMenu() {
                 fontFamily: 'system-ui',
                 flexShrink: 0,
               }}>
-                AstroVerse Observatory v1.0
+                AstroVerse Observatory v2.0
               </div>
             </motion.div>
 
