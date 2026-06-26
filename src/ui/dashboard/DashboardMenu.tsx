@@ -10,6 +10,8 @@ import { LearnPanel }       from './panels/LearnPanel'
 import { SettingsPanel }    from './panels/SettingsPanel'
 import { EarthShortcutPanel }  from './panels/EarthShortcutPanel'
 import { PrayerShortcutPanel } from './panels/PrayerShortcutPanel'
+import { CalendarPanel } from './panels/CalendarPanel'
+
 
 // ── Menu config ───────────────────────────────────────────────
 const MENU_ITEMS: { id: ActivePanel; icon: string; label: string }[] = [
@@ -32,8 +34,9 @@ function PanelContent({ panel }: { panel: ActivePanel }) {
   if (panel === 'astronomy')    return <AstronomyPanel />
   if (panel === 'learn')        return <LearnPanel />
   if (panel === 'settings')     return <SettingsPanel />
-  if (panel === 'earth')        return <EarthShortcutPanel />    // ← new
-  if (panel === 'prayer')       return <PrayerShortcutPanel />   // ← new
+  if (panel === 'earth')        return <EarthShortcutPanel />
+  if (panel === 'prayer')       return <PrayerShortcutPanel />
+  if (panel === 'calendar') return <CalendarPanel />
 
 
   // Placeholder for panels not yet implemented
