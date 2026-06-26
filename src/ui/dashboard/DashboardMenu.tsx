@@ -11,6 +11,7 @@ import { SettingsPanel }    from './panels/SettingsPanel'
 import { EarthShortcutPanel }  from './panels/EarthShortcutPanel'
 import { PrayerShortcutPanel } from './panels/PrayerShortcutPanel'
 import { CalendarPanel } from './panels/CalendarPanel'
+import { CommunityPanel } from './panels/CommunityPanel'
 
 
 // ── Menu config ───────────────────────────────────────────────
@@ -22,6 +23,7 @@ const MENU_ITEMS: { id: ActivePanel; icon: string; label: string }[] = [
   { id: 'prayer',       icon: '🕌', label: 'Prayer Observatory'  },
   { id: 'calendar',     icon: '📅', label: 'Calendar'            },
   { id: 'learn',        icon: '📖', label: 'Learn'               },
+  { id: 'community',    icon: '💬', label: 'Community' },
   { id: 'settings',     icon: '⚙️', label: 'Settings'            },
   { id: 'about',        icon: 'ℹ️', label: 'About'               },
 ]
@@ -37,6 +39,7 @@ function PanelContent({ panel }: { panel: ActivePanel }) {
   if (panel === 'earth')        return <EarthShortcutPanel />
   if (panel === 'prayer')       return <PrayerShortcutPanel />
   if (panel === 'calendar') return <CalendarPanel />
+  if (panel === 'community') return <CommunityPanel />
 
 
   // Placeholder for panels not yet implemented

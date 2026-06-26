@@ -9,6 +9,7 @@ export type ActivePanel =
   | 'astronomy'
   | 'calendar'
   | 'learn'
+  | 'community'
   | 'settings'
   | 'about'
 

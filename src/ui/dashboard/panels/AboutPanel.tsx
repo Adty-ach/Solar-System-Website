@@ -29,7 +29,7 @@ export function AboutPanel() {
           AstroVerse Observatory
         </div>
         <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.35)', marginTop: '4px' }}>
-          v1.0 — Phase 8 · Educational STEM Platform
+          v2.0 — Phase 10 · Educational STEM Platform
         </div>
       </div>
 
