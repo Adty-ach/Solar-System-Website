@@ -1,18 +1,27 @@
-import { useEffect, useRef }       from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import { useUIStore }              from '../../store/useUIStore'
-import { HomePanel }               from './panels/HomePanel'
-import { AboutPanel }              from './panels/AboutPanel'
-import type { ActivePanel }        from '../../store/useUIStore'
-import { SolarSystemPanel } from './panels/SolarSystemPanel'
-import { AstronomyPanel }   from './panels/AstronomyPanel'
-import { LearnPanel }       from './panels/LearnPanel'
-import { SettingsPanel }    from './panels/SettingsPanel'
-import { EarthShortcutPanel }  from './panels/EarthShortcutPanel'
-import { PrayerShortcutPanel } from './panels/PrayerShortcutPanel'
-import { CalendarPanel } from './panels/CalendarPanel'
-import { CommunityPanel } from './panels/CommunityPanel'
+import { useEffect, useRef, useState } from 'react'
+import { motion, AnimatePresence }      from 'framer-motion'
+import { useUIStore }                   from '../../store/useUIStore'
+import { HomePanel }                    from './panels/HomePanel'
+import { AboutPanel }                   from './panels/AboutPanel'
+import { SolarSystemPanel }             from './panels/SolarSystemPanel'
+import { AstronomyPanel }               from './panels/AstronomyPanel'
+import { LearnPanel }                   from './panels/LearnPanel'
+import { SettingsPanel }                from './panels/SettingsPanel'
+import { CalendarPanel }                from './panels/CalendarPanel'
+import { CommunityPanel }               from './panels/CommunityPanel'
+import { EarthShortcutPanel }           from './panels/EarthShortcutPanel'
+import { PrayerShortcutPanel }          from './panels/PrayerShortcutPanel'
+import type { ActivePanel }             from '../../store/useUIStore'
 
+function useViewport() {
+  const [width, setWidth] = useState(window.innerWidth)
+  useEffect(() => {
+    function onResize() { setWidth(window.innerWidth) }
+    window.addEventListener('resize', onResize)
+    return () => window.removeEventListener('resize', onResize)
+  }, [])
+  return width
+}
 
 // ── Menu config ───────────────────────────────────────────────
 const MENU_ITEMS: { id: ActivePanel; icon: string; label: string }[] = [
@@ -59,16 +68,24 @@ function PanelContent({ panel }: { panel: ActivePanel }) {
 
 // ── Main component ────────────────────────────────────────────
 export function DashboardMenu() {
-  const dashboardOpen  = useUIStore((s) => s.dashboardOpen)
-  const activePanel    = useUIStore((s) => s.activePanel)
+  const dashboardOpen   = useUIStore((s) => s.dashboardOpen)
+  const activePanel     = useUIStore((s) => s.activePanel)
   const toggleDashboard = useUIStore((s) => s.toggleDashboard)
   const closeDashboard  = useUIStore((s) => s.closeDashboard)
   const setActivePanel  = useUIStore((s) => s.setActivePanel)
   const closePanel      = useUIStore((s) => s.closePanel)
 
   const sidebarRef = useRef<HTMLDivElement>(null)
+  const vw         = useViewport()
 
-  // ESC closes dashboard
+  // Responsive dimensions — desktop unchanged
+  const isMobile = vw < 768
+  const isTablet = vw >= 768 && vw < 1200
+
+  const sidebarW     = isMobile ? Math.round(vw * 0.9)  : isTablet ? 240 : 260
+  const contentW     = isMobile ? Math.round(vw * 0.9)  : isTablet ? 280 : 300
+  const contentZ     = isMobile ? 165                    : 160
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') closeDashboard()
@@ -79,7 +96,7 @@ export function DashboardMenu() {
 
   return (
     <>
-      {/* ── Hamburger trigger ── */}
+      {/* Hamburger trigger — unchanged */}
       <button
         onClick={toggleDashboard}
         style={{
@@ -108,7 +125,7 @@ export function DashboardMenu() {
           transition:     'all 0.2s',
         }}
       >
-        {/* Hamburger / X icon */}
+
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
           {dashboardOpen ? (
             <>
@@ -123,13 +140,13 @@ export function DashboardMenu() {
             </>
           )}
         </svg>
-        AstroVerse
+        {!isMobile && 'AstroVerse'}
       </button>
 
       <AnimatePresence>
         {dashboardOpen && (
           <>
-            {/* ── Backdrop — click outside to close ── */}
+            {/* Backdrop */}
             <motion.div
               key="backdrop"
               initial={{ opacity: 0 }}
@@ -141,18 +158,18 @@ export function DashboardMenu() {
                 position:       'fixed',
                 inset:          0,
                 zIndex:         150,
-                background:     'rgba(0,0,0,0.45)',
+                background:     'rgba(0,0,0,0.5)',
                 backdropFilter: 'blur(2px)',
               }}
             />
 
-            {/* ── Sidebar ── */}
+            {/* Sidebar */}
             <motion.div
               key="sidebar"
               ref={sidebarRef}
-              initial={{ x: -280 }}
-              animate={{ x: 0    }}
-              exit={{    x: -280 }}
+              initial={{ x: -sidebarW }}
+              animate={{ x: 0         }}
+              exit={{    x: -sidebarW  }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
               onClick={(e) => e.stopPropagation()}
               style={{
@@ -160,17 +177,18 @@ export function DashboardMenu() {
                 top:           0,
                 left:          0,
                 bottom:        0,
-                width:         '260px',
+                width:         `${sidebarW}px`,
                 zIndex:        160,
                 display:       'flex',
                 flexDirection: 'column',
                 background:    'rgba(4,7,18,0.98)',
                 borderRight:   '1px solid rgba(255,255,255,0.08)',
+                overflowX:     'hidden',
               }}
             >
-              {/* Header — clears hamburger button */}
+              {/* Header */}
               <div style={{
-                padding:      '72px 20px 16px',
+                padding:      '72px 16px 14px',
                 borderBottom: '1px solid rgba(255,255,255,0.07)',
                 flexShrink:   0,
               }}>
@@ -187,11 +205,11 @@ export function DashboardMenu() {
                 </div>
               </div>
 
-              {/* Nav items */}
-              <nav style={{ flex: 1, overflowY: 'auto', padding: '8px' }}>
+              {/* Nav */}
+              <nav style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: '8px' }}>
                 {MENU_ITEMS.map((item, idx) => {
-                  const isActive = activePanel === item.id
-                  const addDivider = idx === 6  // before Settings
+                  const isActive  = activePanel === item.id
+                  const addDivider = idx === 6
 
                   return (
                     <div key={item.id}>
@@ -205,14 +223,18 @@ export function DashboardMenu() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation()
-                          setActivePanel(item.id)
+                          if (item.id === 'home') {
+                            setActivePanel('home')
+                          } else {
+                            setActivePanel(item.id)
+                          }
                         }}
                         style={{
                           display:      'flex',
                           alignItems:   'center',
                           gap:          '10px',
                           width:        '100%',
-                          padding:      '9px 12px',
+                          padding:      isMobile ? '10px 10px' : '9px 12px',
                           borderRadius: '9px',
                           border:       isActive
                             ? '1px solid rgba(59,130,246,0.4)'
@@ -224,7 +246,7 @@ export function DashboardMenu() {
                             ? '#93C5FD'
                             : 'rgba(255,255,255,0.55)',
                           cursor:       'pointer',
-                          fontSize:     '13px',
+                          fontSize:     isMobile ? '14px' : '13px',
                           fontWeight:   isActive ? 600 : 400,
                           fontFamily:   'system-ui',
                           textAlign:    'left',
@@ -232,7 +254,7 @@ export function DashboardMenu() {
                           transition:   'all 0.15s',
                         }}
                       >
-                        <span style={{ fontSize: '14px', minWidth: '18px', textAlign: 'center' }}>
+                        <span style={{ fontSize: '15px', minWidth: '18px', textAlign: 'center' }}>
                           {item.icon}
                         </span>
                         {item.label}
@@ -254,7 +276,7 @@ export function DashboardMenu() {
 
               {/* Footer */}
               <div style={{
-                padding:    '10px 20px',
+                padding:    '10px 16px',
                 borderTop:  '1px solid rgba(255,255,255,0.06)',
                 fontSize:   '10px',
                 color:      'rgba(255,255,255,0.18)',
@@ -266,7 +288,7 @@ export function DashboardMenu() {
               </div>
             </motion.div>
 
-            {/* ── Content panel ── */}
+            {/* Content panel */}
             <AnimatePresence mode="wait">
               {activePanel && (
                 <motion.div
@@ -279,26 +301,50 @@ export function DashboardMenu() {
                   style={{
                     position:      'fixed',
                     top:           0,
-                    left:          '260px',
+                    left:          isMobile ? 0 : `${sidebarW}px`,
                     bottom:        0,
-                    width:         '300px',
-                    zIndex:        160,
+                    width:         `${contentW}px`,
+                    zIndex:        contentZ,
                     display:       'flex',
                     flexDirection: 'column',
                     background:    'rgba(5,10,22,0.97)',
                     borderRight:   '1px solid rgba(255,255,255,0.07)',
+                    overflowX:     'hidden',
                   }}
                 >
                   {/* Panel header */}
                   <div style={{
-                    padding:        '20px',
+                    padding:        isMobile ? '16px 14px 12px' : '20px',
                     borderBottom:   '1px solid rgba(255,255,255,0.07)',
                     display:        'flex',
                     alignItems:     'center',
                     justifyContent: 'space-between',
                     flexShrink:     0,
                   }}>
-                    <span style={{ fontSize: '14px', fontWeight: 600, color: '#fff', fontFamily: 'system-ui' }}>
+                    {/* Back arrow on mobile when content overlaps sidebar */}
+                    {isMobile && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); closePanel() }}
+                        style={{
+                          background:   'transparent',
+                          border:       'none',
+                          color:        'rgba(255,255,255,0.5)',
+                          cursor:       'pointer',
+                          fontSize:     '18px',
+                          padding:      '0 8px 0 0',
+                          lineHeight:   1,
+                        }}
+                      >
+                        ‹
+                      </button>
+                    )}
+                    <span style={{
+                      fontSize:   isMobile ? '13px' : '14px',
+                      fontWeight: 600,
+                      color:      '#fff',
+                      fontFamily: 'system-ui',
+                      flex:       1,
+                    }}>
                       {MENU_ITEMS.find((m) => m.id === activePanel)?.label ?? ''}
                     </span>
                     <button
@@ -312,6 +358,8 @@ export function DashboardMenu() {
                         padding:      '3px 10px',
                         fontSize:     '16px',
                         lineHeight:   1,
+                        minWidth:     '32px',
+                        minHeight:    '32px',
                       }}
                     >
                       ×
@@ -319,7 +367,12 @@ export function DashboardMenu() {
                   </div>
 
                   {/* Panel content */}
-                  <div style={{ flex: 1, overflowY: 'auto', padding: '16px 20px' }}>
+                  <div style={{
+                    flex:      1,
+                    overflowY: 'auto',
+                    overflowX: 'hidden',
+                    padding:   isMobile ? '12px 14px' : '16px 20px',
+                  }}>
                     <PanelContent panel={activePanel} />
                   </div>
                 </motion.div>

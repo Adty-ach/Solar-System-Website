@@ -68,7 +68,7 @@ export function HomePanel() {
         { label: 'Speed',     value: SPEED_LABEL[speed] ?? `${speed}×` },
         { label: 'Selected',  value: selected ? selected.charAt(0).toUpperCase() + selected.slice(1) : 'None' },
         { label: 'Planets',   value: '8 + Moon' },
-        { label: 'Version',   value: 'v1.0 Phase 8' },
+        { label: 'Version',   value: 'v2.0 Phase 10' },
       ].map((row) => (
         <div key={row.label} style={{
           display:        'flex',

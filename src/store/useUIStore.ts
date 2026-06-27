@@ -28,6 +28,7 @@ interface UIActions {
   closePanel:         () => void
   toggleOrbitLines:   () => void
   togglePlanetLabels: () => void
+  goHome: () => void
 }
 
 export const useUIStore = create<UIState & UIActions>((set) => ({
@@ -41,6 +42,7 @@ export const useUIStore = create<UIState & UIActions>((set) => ({
   toggleDashboard:  () => set((s) => ({ dashboardOpen: !s.dashboardOpen })),
   setActivePanel:   (panel) => set({ activePanel: panel }),
   closePanel:       () => set({ activePanel: null }),
+  goHome: () => set({ activePanel: null, dashboardOpen: false }),
 
   toggleOrbitLines:   () => set((s) => ({ showOrbitLines:   !s.showOrbitLines   })),
   togglePlanetLabels: () => set((s) => ({ showPlanetLabels: !s.showPlanetLabels })),
