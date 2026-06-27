@@ -48,7 +48,7 @@ useFrame(() => {
 
   // Moon orbit: 27.3 day period — fully derived from simTime
   const days  = simTime.getTime() / 86_400_000
-  const angle = (days / 27.3) * Math.PI * 2
+  const angle = -(days / 27.3) * Math.PI * 2 + Math.PI
 
   groupRef.current.position.set(
     earthPos.x + MOON_ORBIT_RADIUS * Math.cos(angle),
